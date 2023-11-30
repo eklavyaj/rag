@@ -16,17 +16,14 @@ from dotenv import load_dotenv
 
 load_dotenv()
 BASE_DIR = os.getenv("BASE_DIR")
-
-CACHE_DIR = BASE_DIR  + ".cache"
+CACHE_DIR = os.getenv("CACHE_DIR")
 TOKEN = os.getenv("HF_TOKEN")
-MISTRAL_7B_INSTRUCT = "mistralai/Mistral-7B-Instruct-v0.1"
-
-DB_URL = BASE_DIR  + "Data/tables.db"
-
-EXPERIMENT_LOGGER = BASE_DIR  + "Data/Query Results/structured_rag.csv"
-EXCEL_FILE = BASE_DIR  + 'Data/portfolios.xlsx'
-CSV_FOLDER = BASE_DIR  + 'Data/Scrapes/'
-ASSET_MAPPING_PATH = BASE_DIR  + 'Data/asset_mapping.csv'
+MISTRAL_7B_INSTRUCT = os.getenv("MISTRAL_7B_INSTRUCT")
+DB_URL = os.getenv("DB_URL")
+EXPERIMENT_LOGGER = os.getenv("EXPERIMENT_LOGGER")
+EXCEL_FILE = os.getenv("EXCEL_FILE")
+CSV_FOLDER = os.getenv("CSV_FOLDER")
+ASSET_MAPPING_PATH = os.getenv("ASSET_MAPPING_PATH")
 
 PORTFOLIOS = [
     "low risk",
