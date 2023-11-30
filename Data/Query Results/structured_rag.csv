@@ -1,0 +1,173 @@
+timestamp,user_input,llm_response,time_taken,sql_query,portfolio
+2023-11-29 23:49:33.683035,What is the number of shares bought for Google in the user portfolio?,47 shares bought for Google in the user portfolio.,6.247580528259277,SELECT portfolio.shares_bought FROM portfolio WHERE portfolio.ticker = 'GOOGL',low risk
+2023-11-29 23:53:37.393681,"Give ticker, name for the tickers present in the portfolio.
+You may have to join with asset_mapping table.
+Use only existing tables in the database and answer in table format","
+Here are the tickers and their corresponding names present in the portfolio:
+| Ticker | Name |
+| --- | --- |
+| AMAT | Applied Materials Inc |
+| ASML | ASML Holding NV |
+| GOOGL | Alphabet Class A |
+| INTC | Intel Corp |
+| LULU | Lululemon Athletica Inc |
+| REGN | Regeneron Pharmaceuticals Inc |
+| SGEN | Seagen Inc |
+| TEAM | Atlassian Corp |
+| VUG | Vanguard Growth ETF |
+| VUG | Vanguard Growth ETF |
+| VUG | Vanguard Growth ETF |
+| ETH-USD | Ethereum |
+| USDT-USD | Tether |
+| USDT-USD | Tether |
+| USDT-USD | Tether |
+| USDT-USD | Tether |
+| USDT-USD | Tether |
+| USDT-USD | Tether |
+| USDT-USD | Tether |
+| USDT-USD | Tether |
+| USDT-USD | Tether |
+| USDT-USD | Tether |
+| USDT-USD | Tether |
+| USDT-USD | Tether |
+| USDT-USD | Tether |
+| USDT-USD | Tether |
+| USDT-USD | Tether |
+| USDT-USD | Tether |
+| USDT-USD | Tether |
+| USDT-USD | Tether |
+| USDT-USD | Tether |
+| USDT-USD | Tether |
+| USDT-USD | Tether |
+| USDT-USD | Tether |
+| USDT-USD | Tether |
+| USDT-USD | Tether |
+| USDT-USD | Tether |
+| USDT-USD | Tether |
+| USDT-USD | Tether |
+| USDT-USD | Tether |
+| USDT-USD | Tether |
+| USDT-USD | Tether |
+| USDT-USD | Tether |
+| USDT-USD | Tether |
+| USDT-USD | Tether |
+| USDT-USD | Tether |
+| USDT-USD | Tether |
+| USDT-USD | Tether |
+| USDT-USD | Tether |
+| USDT-USD | Tether |
+| USDT-USD | Tether |
+| USDT-USD | Tether |
+| USDT-USD | Tether |
+| USDT-USD | Tether |
+| USDT-USD | Tether |
+| USDT-USD | Tether |
+| USDT-USD | Tether |
+| USDT-USD | Tether |
+| USDT-USD | Tether |
+| USDT-USD | Tether |
+| USDT-USD | Tether |
+| USDT-USD | Tether |
+| USDT-USD | Tether |
+| USDT-USD | Tether |
+| USDT-USD | Tether |
+| USDT-USD | Tether |
+| USDT-USD | Tether |
+| USDT-USD | Tether |
+| USDT-USD | Tether |
+| USDT-USD | Tether |
+| USDT-USD | Tether |
+| USDT-USD | Tether |
+| USDT-USD | Tether |
+| USDT-USD | Tether |
+| USDT-USD | Tether |
+| USDT-USD | Tether |
+| USDT-USD | Tether |
+| USDT-USD | Tether |
+| USDT-USD | Tether |
+| USDT-USD | Tether |
+| USDT-USD | Tether |
+| USDT-USD | Tether |
+| USDT-USD | Tether |
+| USDT-USD | Tether |
+| USDT-USD | Tether |
+| USDT-USD | Tether |
+| USDT-USD | Tether |
+| USDT-USD | Tether |
+| USDT-USD | Tether |
+| USDT-USD | Tether |
+| USDT-USD | Tether |
+| USDT-USD | Tether |
+| USDT-USD | Tether |
+| USDT-USD | Tether |
+| USDT-USD | Tether |
+| USDT-USD | Tether |
+| USDT-USD | Tether |
+| USDT-USD | Tether |
+| USDT-USD | Tether |
+| USDT-USD | Tether |
+| USDT-USD | Tether |
+| USDT-USD | Tether |
+| USDT-USD | Tether |
+| USDT-USD | Tether |
+| USDT-USD | Tether |
+| USDT-USD | Tether |
+| USDT-USD | Tether |
+| USDT-USD | Tether |
+| USDT-USD | Tether |
+| USDT-USD | Tether |
+| USDT-USD | Tether |
+| USDT-USD | Tether |
+| USDT-USD | Tether |
+| USDT-USD | Tether |
+| USDT-USD | Tether |
+| USDT-USD | Tether |
+| USDT-USD | Tether |
+| USDT-USD | Tether |
+| USDT-USD | Tether |
+| USDT-USD | Tether |
+| USDT-USD | Tether |
+| USDT-USD | Tether |
+| USDT-USD | Tether |
+| USDT-USD | Tether |
+| USDT-USD | Tether |
+| USDT-USD | Tether |
+| USDT-USD | Tether |
+| USDT-USD | Tether |
+| USDT-USD | Tether |
+| USDT-USD | Tether |
+| USDT-USD | Tether |
+| USDT-USD | Tether |
+| USDT-USD | Tether |",117.43139600753784,"SELECT asset_mapping.ticker, asset_mapping.name
+FROM asset_mapping
+INNER JOIN portfolio ON asset_mapping.ticker = portfolio.ticker",low risk
+2023-11-30 00:15:41.326769,"""What were the shares_bought for the company with name = 'Seagen Inc' in the user portfolio? 
+You should join the portfolio with asset_mapping table on ticker to get appropriate ticker for the requested company name.""",48 shares were bought for the company with name = 'Seagen Inc' in the user portfolio.,110.98334002494812,"SELECT portfolio.shares_bought FROM portfolio 
+INNER JOIN asset_mapping ON portfolio.ticker = asset_mapping.ticker 
+WHERE asset_mapping.name = 'Seagen Inc'",low risk
+2023-11-30 00:20:08.362674,What is the mean stock price for each ticker in the user portfolio?,"
+The mean stock price for each ticker in the user portfolio is as follows: 
+- AMAT: 122.9761123657227
+- ASML: 676.7775268554688
+- BNB-USD: 268.3809051513672
+- ETH-USD: 1204.582763671875
+- GC=F: 1842.5666503906252
+- GOOGL: 107.3499984741211
+- INTC: 59.98686599731445
+- IUSG: 94.05910110473633
+- JMOM: 39.03550338745117
+- LULU: 310.0499877929688
+- MGK: 215.63373311360678
+- NZUS: 24.111208915710446
+- QQQE: 73.88350677490234
+- REGN: 768.9000244140625
+- SGEN: 193.6499938964844
+- SPYG: 59.06001408894857
+- TEAM: 122.7200012207031
+- USDT-USD: 1.000501990318298
+- USXF: 33.01212692260742
+- VOOG: 252.28501892089844
+- VUG: 272.8963928222657
+- XRP-USD: 0.6077334880828857",51.67365527153015,"SELECT ticker, AVG(price_per_share) AS mean_price
+FROM portfolio
+GROUP BY ticker",low risk
