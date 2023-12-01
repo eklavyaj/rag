@@ -20,4 +20,5 @@ __pycache__/
 .cache
 
 # manual entries
-/Data/Scrapes/**
+/data/scrapes/**
+/data/vectordb/**

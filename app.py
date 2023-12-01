@@ -1,5 +1,5 @@
 import scripts.pages.structured_rag as structured_rag
-
+import scripts.pages.unstructured_rag as unstructured_rag
 import pandas as pd
 import sqlite3
 import os
@@ -21,6 +21,10 @@ EXCEL_FILE = BASE_DIR + os.getenv("EXCEL_FILE")
 CSV_FOLDER = BASE_DIR + os.getenv("CSV_FOLDER")
 ASSET_MAPPING_PATH = BASE_DIR + os.getenv("ASSET_MAPPING_PATH")
 
+EXPERIMENT_LOGGER_UNSTRUCTURED = BASE_DIR + 'data/query_results/unstructured_rag.csv'
+
+SOURCE_DOCUMENTS_PATH = BASE_DIR + 'data/scrapes/'
+VECTOR_DB_INDEX = BASE_DIR + 'data/vectordb/index/'
 
 PORTFOLIOS = [
     "low risk",
@@ -39,6 +43,7 @@ create_path(EXPERIMENT_LOGGER)
 create_path(CSV_FOLDER)
 create_path(DB_URL)
 create_path(CACHE_DIR)
+create_path(VECTOR_DB_INDEX)
 
 pages = [
     'Unstructured RAG',
@@ -54,9 +59,21 @@ st.header("FinAdvisor")
 
 
 if page == 'Unstructured RAG':
+    
+    st.sidebar.divider()
+    st.sidebar.write("RAG over news articles for multiple Stock market tickers using Vector Stores.")
+    chat_history_file = f"data/chat_history/chat_history_unstructured_rag.pkl"
+    but = st.sidebar.button('Clear History', use_container_width=True)
+    if but:
+        if os.path.exists(chat_history_file):
+            os.remove(chat_history_file)
+    
+    refresh_db = st.sidebar.button("Refresh Database", use_container_width=True)
+    if refresh_db:
+        service_context = unstructured_rag.get_service_context(model_name=MISTRAL_7B_INSTRUCT, token=TOKEN, cache_dir=CACHE_DIR)
+        unstructured_rag.load_docs_and_save_index(service_context=service_context)
         
-    st.write("Coming Soon")
-
+    unstructured_rag.render(history_file=chat_history_file)
 
 elif page == 'Structured RAG':
     

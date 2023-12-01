@@ -9,3 +9,7 @@ openpyxl
 bitsandbytes==0.41.2
 scipy
 streamlit
+yfinance
+langchain
+python-dotenv
+sentence_transformers
