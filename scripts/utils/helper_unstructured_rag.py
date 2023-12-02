@@ -7,7 +7,8 @@ from llama_index import (
     SimpleDirectoryReader, 
     VectorStoreIndex,
     ServiceContext,
-    StorageContext
+    StorageContext,
+    KnowledgeGraphIndex
 )
 from llama_index.llms import HuggingFaceLLM
 from llama_index.prompts import PromptTemplate
@@ -15,6 +16,8 @@ import transformers
 import torch
 import time
 from llama_index import StorageContext, load_index_from_storage
+from llama_index.graph_stores import SimpleGraphStore
+from llama_index.llms import OpenAI
 
 load_dotenv()
 
@@ -26,7 +29,7 @@ DB_URL = BASE_DIR + os.getenv("DB_URL")
 EXPERIMENT_LOGGER_UNSTRUCTURED = BASE_DIR + os.getenv("EXPERIMENT_LOGGER_UNSTRUCTURED")
 CSV_FOLDER = BASE_DIR + os.getenv("CSV_FOLDER")
 VECTOR_DB_INDEX = BASE_DIR + os.getenv("VECTOR_DB_INDEX")
-
+GRAPH_DB_INDEX = BASE_DIR + os.getenv("GRAPH_DB_INDEX")
 
 @st.cache_resource
 def get_llm(model_name, token, cache_dir):
@@ -73,12 +76,17 @@ def get_llm(model_name, token, cache_dir):
 @st.cache_resource
 def get_service_context(model_name, token, cache_dir):
     
-    llm = get_llm(model_name, token, cache_dir)
+    if model_name.lower() == 'openai':
+        llm = OpenAI(temperature=0.1, model="gpt-3.5-turbo")
+        service_context = ServiceContext.from_defaults(llm=llm)
+        return service_context
+    
+    llm = get_llm(model_name, token, cache_dir)        
     service_context = ServiceContext.from_defaults(llm=llm, embed_model='local:BAAI/bge-small-en')
     
     return service_context
 
-def load_docs_and_save_index(service_context):
+def load_docs_and_save_index(model_name, service_context):
     
     reader = SimpleDirectoryReader(input_dir=CSV_FOLDER,
                                    required_exts=['.txt'], 
@@ -97,12 +105,53 @@ def load_docs_and_save_index(service_context):
                   not in doc.text]
     
     index = VectorStoreIndex.from_documents(final_docs, service_context=service_context)
-    index.storage_context.persist(VECTOR_DB_INDEX)
+    index.storage_context.persist(os.path.join(VECTOR_DB_INDEX, model_name))
 
-def get_query_engine(service_context):
+def get_query_engine(model_name, service_context):
     
-    storage_context = StorageContext.from_defaults(persist_dir=VECTOR_DB_INDEX)
+    if not os.path.exists(os.path.join(VECTOR_DB_INDEX, model_name)):
+        os.makedirs(os.path.join(VECTOR_DB_INDEX, model_name))
+        
+    storage_context = StorageContext.from_defaults(persist_dir=os.path.join(VECTOR_DB_INDEX, model_name))
 
+    index = load_index_from_storage(storage_context, service_context=service_context)
+    
+    unstructured_query_engine = index.as_query_engine(similarity_top_k=4, response_mode="tree_summarize")
+    return unstructured_query_engine
+    
+    
+def load_docs_and_save_graph_index(service_context):
+    
+    reader = SimpleDirectoryReader(input_dir=CSV_FOLDER,
+                                   required_exts=['.txt'], 
+                                   recursive=True)
+                                   
+    docs = reader.load_data()
+
+    for file, doc in zip(reader.input_files, docs):
+        ticker = file.parts[-3]
+        title = file.parts[-1]
+        doc.metadata['title'] = title
+        doc.metadata['ticker'] = ticker
+    
+    final_docs = [doc for doc in docs if 
+                  "Our engineers are working quickly to resolve the issue" 
+                  not in doc.text]
+    
+    graph_store = SimpleGraphStore()
+    storage_context = StorageContext.from_defaults(graph_store=graph_store)
+    
+    index = KnowledgeGraphIndex.from_documents(
+        final_docs[:5],
+        max_triplets_per_chunk=2,
+        storage_context=storage_context,
+        service_context=service_context,
+    )
+    index.storage_context.persist(GRAPH_DB_INDEX)
+
+def get_graph_query_engine(service_context):
+    
+    storage_context = StorageContext.from_defaults(persist_dir=GRAPH_DB_INDEX)
     index = load_index_from_storage(storage_context, service_context=service_context)
     
     unstructured_query_engine = index.as_query_engine(similarity_top_k=4, response_mode="tree_summarize")

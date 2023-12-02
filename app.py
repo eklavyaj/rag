@@ -11,6 +11,9 @@ import pickle as pkl
 
 load_dotenv()
 
+st.set_page_config(layout="wide")
+print("_"*50)
+
 BASE_DIR = os.getenv("BASE_DIR")
 CACHE_DIR = BASE_DIR + os.getenv("CACHE_DIR")
 TOKEN = os.getenv("HF_TOKEN")
@@ -20,11 +23,9 @@ EXPERIMENT_LOGGER = BASE_DIR + os.getenv("EXPERIMENT_LOGGER")
 EXCEL_FILE = BASE_DIR + os.getenv("EXCEL_FILE")
 CSV_FOLDER = BASE_DIR + os.getenv("CSV_FOLDER")
 ASSET_MAPPING_PATH = BASE_DIR + os.getenv("ASSET_MAPPING_PATH")
-
-EXPERIMENT_LOGGER_UNSTRUCTURED = BASE_DIR + 'data/query_results/unstructured_rag.csv'
-
-SOURCE_DOCUMENTS_PATH = BASE_DIR + 'data/scrapes/'
-VECTOR_DB_INDEX = BASE_DIR + 'data/vectordb/index/'
+EXPERIMENT_LOGGER_UNSTRUCTURED = BASE_DIR + os.getenv("EXPERIMENT_LOGGER_UNSTRUCTURED")
+VECTOR_DB_INDEX = BASE_DIR + os.getenv("VECTOR_DB_INDEX")
+GRAPH_DB_INDEX = BASE_DIR + os.getenv("GRAPH_DB_INDEX")
 
 PORTFOLIOS = [
     "low risk",
@@ -44,8 +45,10 @@ create_path(CSV_FOLDER)
 create_path(DB_URL)
 create_path(CACHE_DIR)
 create_path(VECTOR_DB_INDEX)
+create_path(GRAPH_DB_INDEX)
 
 pages = [
+    'Auto RAG',
     'Unstructured RAG',
     'Structured RAG', 
     'Custom Unstructured RAG',
@@ -90,12 +93,13 @@ elif page == 'Structured RAG':
     structured_rag.render(portfolio=portfolio, history_file=chat_history_file)
     
 
+elif page == 'Auto RAG':
+    st.write("Coming Soon")
+    
 elif page == 'General Structured RAG':
     st.write("Coming Soon")
 
-
-elif page == 'General Unstructured RAG':
-    
+elif page == 'General Unstructured RAG':    
     st.write("Coming Soon")
     
 elif page == 'History':

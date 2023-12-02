@@ -35,6 +35,11 @@ def answer_query(query_engine, query):
 
 def render(portfolio=None, history_file=None):
     
+    model = st.sidebar.selectbox("Model", ['Mistral', 'GPT-3.5-Turbo'])
+    model_names = {
+        'Mistral': MISTRAL_7B_INSTRUCT, 
+        'GPT-3.5-Turbo': 'OpenAI'   
+    }
     
     df = pd.read_excel(EXCEL_FILE, sheet_name=portfolio)
         
@@ -51,12 +56,12 @@ def render(portfolio=None, history_file=None):
                                     csv_folder=CSV_FOLDER, 
                                     csv_path=ASSET_MAPPING_PATH)
 
-        service_context_mistral = get_service_context(
-            MISTRAL_7B_INSTRUCT, token=TOKEN, cache_dir=CACHE_DIR
+        service_context = get_service_context(
+            model_names[model], token=TOKEN, cache_dir=CACHE_DIR
         )
         
         query_engine = get_query_engine(
-            sql_database=sql_database, service_context=service_context_mistral
+            sql_database=sql_database, service_context=service_context
         )
 
     try:
@@ -73,7 +78,14 @@ def render(portfolio=None, history_file=None):
         else:
             with st.chat_message(message['role']):
                 st.markdown(message['content'])
-                st.markdown(message['time_taken'])
+                col1, col2 = st.columns((2, 1))
+                with col1:
+                    st.markdown(message['time_taken'])
+                with col2:
+                    try:
+                        st.markdown(f"*Model: {message['model']}*")
+                    except:
+                        pass
                 with st.expander('SQL', expanded=False):
                     st.code(message['sql'], language='sql')
                     if type(message['df_sql']) == str:
@@ -102,7 +114,14 @@ def render(portfolio=None, history_file=None):
         
         with st.chat_message("assistant"):
             st.markdown(resp)
-            st.markdown(time_taken)
+            col1, col2 = st.columns((2, 1))
+            with col1:
+                st.markdown(time_taken)
+            with col2:
+                try:
+                    st.markdown(f"*Model: {model}*")
+                except:
+                    pass
             with st.expander('SQL', expanded=True):
                 st.code(sql, language='sql')
                 if type(df_sql) == str:

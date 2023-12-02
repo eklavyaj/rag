@@ -20,6 +20,7 @@ import sqlite3
 import warnings
 warnings.filterwarnings("ignore")
 import streamlit as st
+from llama_index.llms import OpenAI
 
 @st.cache_resource
 def get_llm(model_name, token, cache_dir):
@@ -65,9 +66,14 @@ def get_llm(model_name, token, cache_dir):
 @st.cache_resource
 def get_service_context(model_name, token, cache_dir):
     
+    if model_name.lower() == 'openai':
+        llm = OpenAI(temperature=0.1, model="gpt-3.5-turbo")
+        service_context = ServiceContext.from_defaults(llm=llm)
+        return service_context
+    
     llm = get_llm(model_name, token, cache_dir)
     service_context = ServiceContext.from_defaults(llm=llm, embed_model='local:BAAI/bge-small-en')
-    # print("Service Context Initialized")
+
     return service_context
 
 

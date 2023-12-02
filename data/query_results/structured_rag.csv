@@ -645,3 +645,62 @@ LIMIT 1",low risk
 2023-11-30 14:10:09.459921,What is the latest close price for AAPL?,189.79 (rounded to two decimal places),6.313567638397217,SELECT close FROM history_AAPL ORDER BY date DESC LIMIT 1,moderate risk
 2023-11-30 23:00:37.351869,Mean stock price for AAPL. ,161.76,6.959396362304688,SELECT AVG(close) FROM history_AAPL WHERE ticker = 'AAPL',low risk
 2023-11-30 23:01:29.683372,Mean stock price for AAPL.,161.76,6.283555030822754,SELECT AVG(close) FROM history_AAPL,low risk
+2023-12-01 23:47:41.208028,What are the unique tickers in my portfolio? Answer in table format.,"
+| ticker |
+|--------|
+| LULU   |
+| SGEN   |
+| GOOGL  |
+| TEAM   |
+| AMAT   |
+| INTC   |
+| ASML   |
+| REGN   |
+| QQQE   |
+| SPYG   |
+| USXF   |
+| IUSG   |
+| VUG    |
+| VOOG   |
+| JMOM   |
+| MGK    |
+| NZUS   |
+| BNB-USD|
+| ETH-USD|
+| XRP-USD|
+| USDT-USD|
+| GC=F  |",18.7529718875885,SELECT DISTINCT ticker FROM portfolio,low risk
+2023-12-02 01:12:35.894317,Calculate the average stock price of each stock in the portfolio,The average stock price of AVGO in the portfolio is $628.44.,10.932482481002808,"SELECT ticker, AVG(close) AS average_stock_price
+FROM history_AVGO
+GROUP BY ticker",low risk
+2023-12-02 01:13:36.708246,Calculate the average stock price of all entities in the user portfolio. ,The average stock price of all entities in your portfolio is $295.30 per share.,6.793440103530884,SELECT AVG(price_per_share) FROM portfolio WHERE type = 'Stock',low risk
+2023-12-02 01:20:36.172051,calculate the average stock price of all entities in the user portfolio. Answer in table format,"
+| ticker | avg_price |
+|--------|------------|
+| AMAT   | 122.9761123657227 |
+| ASML   | 676.7775268554688 |
+| BNB-USD | 268.3809051513672 |
+| ETH-USD | 1204.582763671875 |
+| GC=F   | 1842.5666503906252 |
+| GOOGL  | 107.3499984741211 |
+| INTC   | 59.98686599731445 |
+| IUSG   | 94.05910110473633 |
+| JMOM   | 39.03550338745117 |
+| LULU   | 310.0499877929688 |
+| MGK    | 215.63373311360678 |
+| NZUS   | 24.111208915710446 |
+| QQQE   | 73.88350677490234 |
+| REGN   | 768.9000244140625 |
+| SGEN   | 193.6499938964844 |
+| SPYG   | 59.06001408894857 |
+| TEAM   | 122.7200012207031 |
+| USDT-USD | 1.000501990318298 |
+| USXF   | 33.01212692260742 |
+| VOOG   | 252.28501892089844 |
+| VUG    | 272.8963928222657 |
+| XRP-USD | 0.6077334880828857 |",262.6940367221832,"SELECT portfolio.ticker, AVG(portfolio.price_per_share) AS avg_price
+FROM portfolio
+GROUP BY portfolio.ticker",low risk
+2023-12-02 01:37:08.082086,Calculate the average stock price of all entities in the user portfolio. Answer in table format,The average stock price of all entities in your portfolio is $295.30.,6.928225517272949,"SELECT AVG(price_per_share) AS average_stock_price
+FROM portfolio
+WHERE type = 'Stock'",low risk
