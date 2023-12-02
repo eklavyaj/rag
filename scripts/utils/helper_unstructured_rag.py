@@ -120,40 +120,40 @@ def get_query_engine(model_name, service_context):
     return unstructured_query_engine
     
     
-def load_docs_and_save_graph_index(service_context):
+# def load_docs_and_save_graph_index(service_context):
     
-    reader = SimpleDirectoryReader(input_dir=CSV_FOLDER,
-                                   required_exts=['.txt'], 
-                                   recursive=True)
+#     reader = SimpleDirectoryReader(input_dir=CSV_FOLDER,
+#                                    required_exts=['.txt'], 
+#                                    recursive=True)
                                    
-    docs = reader.load_data()
+#     docs = reader.load_data()
 
-    for file, doc in zip(reader.input_files, docs):
-        ticker = file.parts[-3]
-        title = file.parts[-1]
-        doc.metadata['title'] = title
-        doc.metadata['ticker'] = ticker
+#     for file, doc in zip(reader.input_files, docs):
+#         ticker = file.parts[-3]
+#         title = file.parts[-1]
+#         doc.metadata['title'] = title
+#         doc.metadata['ticker'] = ticker
     
-    final_docs = [doc for doc in docs if 
-                  "Our engineers are working quickly to resolve the issue" 
-                  not in doc.text]
+#     final_docs = [doc for doc in docs if 
+#                   "Our engineers are working quickly to resolve the issue" 
+#                   not in doc.text]
     
-    graph_store = SimpleGraphStore()
-    storage_context = StorageContext.from_defaults(graph_store=graph_store)
+#     graph_store = SimpleGraphStore()
+#     storage_context = StorageContext.from_defaults(graph_store=graph_store)
     
-    index = KnowledgeGraphIndex.from_documents(
-        final_docs[:5],
-        max_triplets_per_chunk=2,
-        storage_context=storage_context,
-        service_context=service_context,
-    )
-    index.storage_context.persist(GRAPH_DB_INDEX)
+#     index = KnowledgeGraphIndex.from_documents(
+#         final_docs[:5],
+#         max_triplets_per_chunk=2,
+#         storage_context=storage_context,
+#         service_context=service_context,
+#     )
+#     index.storage_context.persist(GRAPH_DB_INDEX)
 
-def get_graph_query_engine(service_context):
+# def get_graph_query_engine(service_context):
     
-    storage_context = StorageContext.from_defaults(persist_dir=GRAPH_DB_INDEX)
-    index = load_index_from_storage(storage_context, service_context=service_context)
+#     storage_context = StorageContext.from_defaults(persist_dir=GRAPH_DB_INDEX)
+#     index = load_index_from_storage(storage_context, service_context=service_context)
     
-    unstructured_query_engine = index.as_query_engine(similarity_top_k=4, response_mode="tree_summarize")
-    return unstructured_query_engine
+#     unstructured_query_engine = index.as_query_engine(similarity_top_k=4, response_mode="tree_summarize")
+#     return unstructured_query_engine
     

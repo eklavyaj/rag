@@ -10,8 +10,6 @@ from scripts.utils.helper_unstructured_rag import (
     get_service_context, 
     get_query_engine, 
     load_docs_and_save_index, 
-    get_graph_query_engine, 
-    load_docs_and_save_graph_index,
 )
 
 load_dotenv()
@@ -40,33 +38,33 @@ def clean_response(response):
 
 def render(history_file):
     
-    model = st.sidebar.selectbox("Model", ['Mistral', 'GPT-3.5-Turbo'])
+    model = st.sidebar.selectbox("Model", ['Mistral-7B-Instruct', 'GPT-3.5-Turbo'])
     model_names = {
-        'Mistral': MISTRAL_7B_INSTRUCT, 
+        'Mistral-7B-Instruct': MISTRAL_7B_INSTRUCT, 
         'GPT-3.5-Turbo': 'OpenAI'   
     }
     
-    query_engine_name = st.sidebar.selectbox("Index", ['Vector Store', 'Knowledge Graph'])
+    # query_engine_name = st.sidebar.selectbox("Index", ['Vector Store', 'Knowledge Graph'])
     
     st.write("*Welcome, ask away!*")
     with st.spinner("Initializing App"):
         service_context = get_service_context(model_name=model_names[model], token=TOKEN, cache_dir=CACHE_DIR)
         
-        if query_engine_name == 'Vector Store':
+        # if query_engine_name == 'Vector Store':
             
-            try:
-                query_engine = get_query_engine(model_name=model_names[model], service_context=service_context)
-            except:
-                load_docs_and_save_index(model_names[model], service_context=service_context)
-                query_engine = get_query_engine(model_name=model_names[model], service_context=service_context)
+        try:
+            query_engine = get_query_engine(model_name=model_names[model], service_context=service_context)
+        except:
+            load_docs_and_save_index(model_names[model], service_context=service_context)
+            query_engine = get_query_engine(model_name=model_names[model], service_context=service_context)
             
-        elif query_engine_name == 'Knowledge Graph':
+        # elif query_engine_name == 'Knowledge Graph':
             
-            try:
-                query_engine = get_graph_query_engine(service_context=service_context)
-            except:
-                load_docs_and_save_graph_index(service_context=service_context)
-                query_engine = get_graph_query_engine(service_context=service_context)
+        #     try:
+        #         query_engine = get_graph_query_engine(service_context=service_context)
+        #     except:
+        #         load_docs_and_save_graph_index(service_context=service_context)
+        #         query_engine = get_graph_query_engine(service_context=service_context)
             
             
     try:
@@ -79,18 +77,32 @@ def render(history_file):
         if message['role'] == 'user':
             with st.chat_message(message["role"]):
                 st.markdown(message["content"])
-                
+            
         else:
             with st.chat_message(message['role']):
                 st.markdown(message['content'])
-                col1, col2 = st.columns((2, 1))
+                col1, col2, col3 = st.columns(3)
+                
                 with col1:
                     st.markdown(message['time_taken'])
                 with col2:
                     try:
-                        st.markdown(f"*Model: {message['model']}*")
+                        st.markdown(f"Model: {message['model']}")
                     except:
                         pass
+                
+                with col3:
+                    try:
+                        st.button(st.session_state['feedback'],
+                                  key=message['content'][:10] + str(datetime.datetime.now()),
+                                  type="primary", 
+                                  use_container_width=True)
+                    except:
+                        st.button("No Feedback",
+                                  key=message['content'][:10] + str(datetime.datetime.now()),
+                                  type="primary", 
+                                  use_container_width=True)
+                    
                 
                 with st.expander("Sources"):
                     for i, source in enumerate(message['sources']):
@@ -99,8 +111,8 @@ def render(history_file):
                         st.markdown(source['text'])
                         
                         if i == 3:
-                            break
-                    
+                            break   
+                
     if input_query := st.chat_input("How can I help?"):
 
         st.session_state.messages.append({"role": "user", "content": input_query})
@@ -109,8 +121,7 @@ def render(history_file):
             st.markdown(input_query)
         
         with st.spinner("Getting Response"):
-            time, resp = answer_query(query_engine=query_engine, 
-                                      query=input_query)
+            time, resp = answer_query(query_engine=query_engine, query=input_query)
         
         source_nodes = resp.source_nodes
         sources = []
@@ -132,12 +143,16 @@ def render(history_file):
             
         with st.chat_message("assistant"):
             st.markdown(resp)
-            col1, col2 = st.columns((2, 1))
+            
+            col1, col2, col3 = st.columns(3)
             with col1:
                 st.markdown(time_taken)
             with col2:
-                st.markdown(f"*Model: {model}*")
-                
+                try:
+                    st.markdown(f"Model: {model}")
+                except:
+                    pass
+                            
             with st.expander("Sources"):
                 for i, source in enumerate(sources):
                     st.link_button(source['title'], source['url'])
@@ -146,23 +161,41 @@ def render(history_file):
                     
                     if i == 3:
                         break
-            
+                    
+            st.session_state['feedback'] = "No feedback"
+            _, col1, col2 = st.columns((4, 0.5, 0.5))
+            with col1:
+                thumbs_up = st.button(":thumbsup:", use_container_width=True)
+                if thumbs_up:
+                    st.session_state['feedback'] = ":thumbsup:"
+                    st.balloons()
+                
+            with col2:
+                thumbs_down = st.button(":thumbsdown:", use_container_width=True)
+                if thumbs_down:
+                    st.session_state['feedback'] = ":thumbsdown:"
+                    st.snow()
+                    
+        timestamp = datetime.datetime.now()
         st.session_state.messages.append({
             'role': 'assistant', 
             'content': resp, 
+            'timestamp': timestamp,
             'time_taken': time_taken, 
             'model': model,
             'sources': sources,
+            'feedback': st.session_state['feedback']
             })
         
         # log each query
         df = pd.DataFrame({
-            'timestamp': [datetime.datetime.now()],
+            'timestamp': [timestamp],
             'user_input': [input_query],
             'llm_response': [resp],
             'time_taken': [time],
             'model': [model_names[model]],
-            'sources': [sources]
+            'sources': [sources], 
+            'feedback': [st.session_state['feedback']]
             })
         
         try:
