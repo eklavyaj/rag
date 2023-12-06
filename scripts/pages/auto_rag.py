@@ -14,32 +14,22 @@ from llama_index.llms import OpenAI
 
 import scripts.utils.helper_unstructured_rag as unstructured_rag
 import scripts.utils.helper_structured_rag as structured_rag
+import scripts.utils.st_ingest as st_ingest
 
 load_dotenv()
-
-BASE_DIR = os.getenv("BASE_DIR")
-DB_URL = os.getenv("DB_URL")
 
 CACHE_DIR = os.getenv("CACHE_DIR")
 TOKEN = os.getenv("HF_TOKEN")
 
-MISTRAL_7B_INSTRUCT = os.getenv("MISTRAL_7B_INSTRUCT")
-FINETUNED_MISTRAL = os.getenv("FINETUNED_MISTRAL")
-
+DB_URL = os.getenv("DB_URL")
 EXCEL_FILE_PATH = os.getenv("EXCEL_FILE_PATH")
 SOURCE_DOCUMENTS_PATH = os.getenv("SOURCE_DOCUMENTS_PATH")
 ASSET_MAPPING_PATH = os.getenv("ASSET_MAPPING_PATH")
 
-EXPERIMENT_LOGGER_STRUCTURED = os.getenv("EXPERIMENT_LOGGER_STRUCTURED")
-EXPERIMENT_LOGGER_UNSTRUCTURED = os.getenv("EXPERIMENT_LOGGER_UNSTRUCTURED")
 EXPERIMENT_LOGGER_AUTO = os.getenv("EXPERIMENT_LOGGER_AUTO")
-
 CHAT_HISTORY_AUTO = os.getenv("CHAT_HISTORY_AUTO")
-CHAT_HISTORY_STRUCTURED = os.getenv("CHAT_HISTORY_STRUCTURED")
-CHAT_HISTORY_UNSTRUCTURED = os.getenv("CHAT_HISTORY_UNSTRUCTURED")
 
 VECTOR_DB_INDEX = os.getenv("VECTOR_DB_INDEX")
-GRAPH_DB_INDEX = os.getenv("GRAPH_DB_INDEX")
 
 
 @st.cache_resource
@@ -69,7 +59,7 @@ def get_llm(model_name, token, cache_dir):
     llm = HuggingFaceLLM(
         context_window=4096,
         max_new_tokens=25,
-        generate_kwargs={"temperature": 0.01},
+        generate_kwargs={"temperature": 0.1},
         tokenizer=tokenizer,
         model_name=model_name,
         device_map="auto",
@@ -90,7 +80,7 @@ def intent_classification(model_name, query):
 
     if model_name.lower() == "openai":
         template = f"""
-        Structured data: user portfolio, historical stock prices
+        Structured data: user portfolio, portfolio, historical stock prices
         Unstructured data: news articles, qualitative questions, recent happenings
         
         Given the query {query}, identify which kind of data is required to answer this query. 
@@ -99,13 +89,20 @@ def intent_classification(model_name, query):
         llm = get_llm(model_name=model_name, token=TOKEN, cache_dir=CACHE_DIR)
         resp = llm.complete(template)
 
-        return time.time() - start, resp.text
+        text = resp.text.lower().replace(".", "").strip()
+
+        if "unstructured" in text:
+            text = "unstructured"
+        else:
+            text = "structured"
+
+        return time.time() - start, text
 
     system_prompt = """
-    Structured data: user portfolio, historical stock prices
+    Structured data: user portfolio, portfolio, historical stock prices
     Unstructured data: news articles, qualitative questions, recent happenings
     
-    Identify which kind of data is required to answer this query. 
+    Identify which kind of data is required to answer the given query. 
     Answer in one word and select from structured or unstructured.
     """
 
@@ -118,12 +115,13 @@ def intent_classification(model_name, query):
 
     llm = get_llm(model_name=model_name, token=TOKEN, cache_dir=CACHE_DIR)
     resp = llm.complete(template)
-    # pkl.dump(resp, open("/home/eklavya/Capstone/temp.pkl", "wb"))
-
     text = resp.text.lower().replace(".", "").strip()
-    if text not in ["unstructured", "structured"]:
-        st.markdown(f"Intent: {text}")
+
+    if "unstructured" in text:
         text = "unstructured"
+
+    else:
+        text = "structured"
 
     return time.time() - start, text
 
@@ -150,26 +148,27 @@ def clean_response(response):
     return response
 
 
-def render(history_file, models, model_names, portfolios):
+def render(history_file, models, model_names_to_id, portfolios):
+    st.sidebar.divider()
     model = st.sidebar.selectbox("Choose Model", models)
     portfolio = st.sidebar.selectbox("Choose Portfolio", portfolios)
 
     with st.spinner("Loading Unstructured RAG"):
         unstructured_service_context = unstructured_rag.get_service_context(
-            model_names[model], token=TOKEN, cache_dir=CACHE_DIR
+            model_names_to_id[model], token=TOKEN, cache_dir=CACHE_DIR
         )
 
         try:
             unstructured_query_engine = unstructured_rag.get_query_engine(
-                model_name=model_names[model],
+                model_name=model_names_to_id[model],
                 service_context=unstructured_service_context,
             )
         except:
             unstructured_rag.load_docs_and_save_index(
-                model_names[model], service_context=unstructured_service_context
+                model_names_to_id[model], service_context=unstructured_service_context
             )
             unstructured_query_engine = unstructured_rag.get_query_engine(
-                model_name=model_names[model],
+                model_name=model_names_to_id[model],
                 service_context=unstructured_service_context,
             )
 
@@ -183,14 +182,31 @@ def render(history_file, models, model_names, portfolios):
         )
 
         structured_service_context = structured_rag.get_service_context(
-            model_names[model], token=TOKEN, cache_dir=CACHE_DIR
+            model_names_to_id[model], token=TOKEN, cache_dir=CACHE_DIR
         )
 
         structured_query_engine = structured_rag.get_query_engine(
             sql_database=sql_database, service_context=structured_service_context
         )
 
-    st.write("*Welcome, ask away!*")
+    st.sidebar.divider()
+    refresh_db = st.sidebar.button(
+        "Refresh News", use_container_width=True, help="Might take a while to complete"
+    )
+
+    if refresh_db:
+        try:
+            st_ingest.st_ingest_data()
+            unstructured_rag.load_docs_and_save_index(
+                model_names_to_id[model], service_context=unstructured_service_context
+            )
+        except:
+            st.sidebar.write("Failed to Refresh DB")
+
+    clear_history = st.sidebar.button("Clear History", use_container_width=True)
+    if clear_history:
+        if os.path.exists(history_file):
+            os.remove(history_file)
 
     try:
         st.session_state.messages = pkl.load(open(history_file, "rb"))
@@ -244,7 +260,7 @@ def render(history_file, models, model_names, portfolios):
         with st.spinner("Getting Response"):
             with st.spinner("Classifying Intent"):
                 time_intent, intent = intent_classification(
-                    model_names[model], input_query
+                    model_names_to_id[model], input_query
                 )
 
             with st.spinner(f"Activating {intent.capitalize()} Engine"):
@@ -331,14 +347,14 @@ def render(history_file, models, model_names, portfolios):
         df = pd.DataFrame(
             {
                 "timestamp": [timestamp],
-                "portfolio": [portfolio],
                 "model": [model],
+                "portfolio": [portfolio],
                 "user_input": [input_query],
                 "intent": [intent],
                 "llm_response": [resp],
-                "time_taken": [time + time_intent],
                 "sql_query": [sql],
                 "sources": [sources],
+                "time_taken": [time + time_intent],
             }
         )
 

@@ -5,7 +5,7 @@ import os
 from dotenv import load_dotenv
 import datetime
 import time
-
+import scripts.utils.st_ingest as st_ingest
 from scripts.utils.helper_unstructured_rag import (
     get_service_context,
     get_query_engine,
@@ -14,29 +14,19 @@ from scripts.utils.helper_unstructured_rag import (
 
 load_dotenv()
 
-BASE_DIR = os.getenv("BASE_DIR")
-DB_URL = os.getenv("DB_URL")
 
 CACHE_DIR = os.getenv("CACHE_DIR")
 TOKEN = os.getenv("HF_TOKEN")
 
-MISTRAL_7B_INSTRUCT = os.getenv("MISTRAL_7B_INSTRUCT")
-FINETUNED_MISTRAL = os.getenv("FINETUNED_MISTRAL")
-
+DB_URL = os.getenv("DB_URL")
 EXCEL_FILE_PATH = os.getenv("EXCEL_FILE_PATH")
 SOURCE_DOCUMENTS_PATH = os.getenv("SOURCE_DOCUMENTS_PATH")
 ASSET_MAPPING_PATH = os.getenv("ASSET_MAPPING_PATH")
 
-EXPERIMENT_LOGGER_STRUCTURED = os.getenv("EXPERIMENT_LOGGER_STRUCTURED")
 EXPERIMENT_LOGGER_UNSTRUCTURED = os.getenv("EXPERIMENT_LOGGER_UNSTRUCTURED")
-EXPERIMENT_LOGGER_AUTO = os.getenv("EXPERIMENT_LOGGER_AUTO")
-
-CHAT_HISTORY_AUTO = os.getenv("CHAT_HISTORY_AUTO")
-CHAT_HISTORY_STRUCTURED = os.getenv("CHAT_HISTORY_STRUCTURED")
 CHAT_HISTORY_UNSTRUCTURED = os.getenv("CHAT_HISTORY_UNSTRUCTURED")
 
 VECTOR_DB_INDEX = os.getenv("VECTOR_DB_INDEX")
-GRAPH_DB_INDEX = os.getenv("GRAPH_DB_INDEX")
 
 
 def answer_query(query_engine, query):
@@ -49,45 +39,51 @@ def answer_query(query_engine, query):
 
 def clean_response(response):
     response = response.replace("$", "\$")
+    response = response.replace('"', "'")
+
     return response
 
 
-def render(history_file):
-    model = st.sidebar.selectbox("Model", ["Mistral-7B-Instruct", "GPT-3.5-Turbo"])
-    model_names = {
-        "Mistral-7B-Instruct": MISTRAL_7B_INSTRUCT,
-        "GPT-3.5-Turbo": "OpenAI",
-    }
+def render(history_file, models, model_names_to_id):
+    st.sidebar.divider()
+    model = st.sidebar.selectbox("Model", models)
 
-    # query_engine_name = st.sidebar.selectbox("Index", ['Vector Store', 'Knowledge Graph'])
-
-    st.write("*Welcome, ask away!*")
     with st.spinner("Initializing App"):
         service_context = get_service_context(
-            model_name=model_names[model], token=TOKEN, cache_dir=CACHE_DIR
+            model_name=model_names_to_id[model], token=TOKEN, cache_dir=CACHE_DIR
         )
-
-        # if query_engine_name == 'Vector Store':
 
         try:
             query_engine = get_query_engine(
-                model_name=model_names[model], service_context=service_context
+                model_name=model_names_to_id[model], service_context=service_context
             )
         except:
             load_docs_and_save_index(
-                model_names[model], service_context=service_context
+                model_names_to_id[model], service_context=service_context
             )
             query_engine = get_query_engine(
-                model_name=model_names[model], service_context=service_context
+                model_name=model_names_to_id[model], service_context=service_context
             )
 
-        # elif query_engine_name == 'Knowledge Graph':
+    st.sidebar.divider()
+    refresh_db = st.sidebar.button(
+        "Refresh News", use_container_width=True, help="Might take a while to complete"
+    )
 
-        #     try:
-        #         query_engine = get_graph_query_engine(service_context=service_context)
-        #     except:
-        #         load_docs_and_save_graph_index(service_context=service_context)
-        #         query_engine = get_graph_query_engine(service_context=service_context)
+    if refresh_db:
+        try:
+            st_ingest.st_ingest_data()
+            load_docs_and_save_index(
+                model_names_to_id[model], service_context=service_context
+            )
+
+        except:
+            st.sidebar.write("Failed to Refresh DB")
+
+    but = st.sidebar.button("Clear History", use_container_width=True)
+    if but:
+        if os.path.exists(CHAT_HISTORY_UNSTRUCTURED):
+            os.remove(CHAT_HISTORY_UNSTRUCTURED)
 
     try:
         st.session_state.messages = pkl.load(open(history_file, "rb"))
@@ -174,15 +170,14 @@ def render(history_file):
             }
         )
 
-        # log each query
         df = pd.DataFrame(
             {
                 "timestamp": [timestamp],
+                "model": [model],
                 "user_input": [input_query],
                 "llm_response": [resp],
-                "time_taken": [time],
-                "model": [model_names[model]],
                 "sources": [sources],
+                "time_taken": [time],
             }
         )
 

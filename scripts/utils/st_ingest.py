@@ -37,31 +37,20 @@ def download_blob(bucket_name, blob_name, dst_path):
     blob.download_to_filename(dst_path)
 
 
-def ingest_data():
+def st_ingest_data():
     blobs = list_blobs_with_prefix(bucket_name, "yfinance/")
     dst_blobs = [blob.replace("yfinance", SOURCE_DOCUMENTS_PATH) for blob in blobs]
 
-    for i in tqdm(range(len(blobs))):
+    progress_text = "Ingestion in progress. Please wait."
+    bar = st.sidebar.progress(0, text=progress_text)
+    for i in range(len(blobs)):
         try:
             download_blob(bucket_name, blobs[i], dst_path=dst_blobs[i])
         except:
             continue
+        bar.progress(i / len(blobs), text=progress_text)
+
+    bar.empty()
 
 
-# def st_ingest_data():
-#     blobs = list_blobs_with_prefix(bucket_name, "yfinance/")
-#     dst_blobs = [blob.replace("yfinance", SOURCE_DOCUMENTS_PATH) for blob in blobs]
-
-#     progress_text = "Ingestion in progress. Please wait."
-#     bar = st.sidebar.progress(0, text=progress_text)
-#     for i in range(len(blobs)):
-#         try:
-#             download_blob(bucket_name, blobs[i], dst_path=dst_blobs[i])
-#         except:
-#             continue
-#         bar.progress(i / len(blobs), text=progress_text)
-
-#     bar.empty()
-
-
-ingest_data()
+# ingest_data()

@@ -1,6 +1,9 @@
-import scripts.pages.structured_rag as structured_rag
-import scripts.pages.unstructured_rag as unstructured_rag
-import scripts.pages.auto_rag as auto_rag
+# import scripts.pages.structured_rag as structured_rag
+# import scripts.pages.unstructured_rag as unstructured_rag
+# import scripts.pages.auto_rag as auto_rag
+# import scripts.pages.auto_rag as auto_rag
+import torch
+from scripts.pages import structured_rag, unstructured_rag, auto_rag, chatbot
 import pandas as pd
 import sqlite3
 import os
@@ -12,7 +15,8 @@ import pickle as pkl
 
 load_dotenv()
 
-st.set_page_config(layout="wide")
+st.set_page_config(layout="wide", page_title="FinAdvisor", page_icon="home.png")
+
 
 BASE_DIR = os.getenv("BASE_DIR")
 DB_URL = os.getenv("DB_URL")
@@ -22,6 +26,7 @@ TOKEN = os.getenv("HF_TOKEN")
 
 MISTRAL_7B_INSTRUCT = os.getenv("MISTRAL_7B_INSTRUCT")
 FINETUNED_MISTRAL = os.getenv("FINETUNED_MISTRAL")
+DPO_MISTRAL = os.getenv("DPO_MISTRAL")
 
 EXCEL_FILE_PATH = os.getenv("EXCEL_FILE_PATH")
 SOURCE_DOCUMENTS_PATH = os.getenv("SOURCE_DOCUMENTS_PATH")
@@ -30,10 +35,12 @@ ASSET_MAPPING_PATH = os.getenv("ASSET_MAPPING_PATH")
 EXPERIMENT_LOGGER_AUTO = os.getenv("EXPERIMENT_LOGGER_AUTO")
 EXPERIMENT_LOGGER_STRUCTURED = os.getenv("EXPERIMENT_LOGGER_STRUCTURED")
 EXPERIMENT_LOGGER_UNSTRUCTURED = os.getenv("EXPERIMENT_LOGGER_UNSTRUCTURED")
+EXPERIMENT_LOGGER_CHATBOT = os.getenv("EXPERIMENT_LOGGER_CHATBOT")
 
 CHAT_HISTORY_AUTO = os.getenv("CHAT_HISTORY_AUTO")
 CHAT_HISTORY_STRUCTURED = os.getenv("CHAT_HISTORY_STRUCTURED")
 CHAT_HISTORY_UNSTRUCTURED = os.getenv("CHAT_HISTORY_UNSTRUCTURED")
+CHAT_HISTORY_CHATBOT = os.getenv("CHAT_HISTORY_CHATBOT")
 
 VECTOR_DB_INDEX = os.getenv("VECTOR_DB_INDEX")
 GRAPH_DB_INDEX = os.getenv("GRAPH_DB_INDEX")
@@ -48,12 +55,14 @@ PORTFOLIOS = [
 MODELS = [
     "Mistral-7B-Instruct",
     "Mistral-7B-Instruct-FT",
+    "Mistral-7B-Instruct-DPO",
     "GPT-3.5-Turbo",
 ]
 
-MODEL_NAMES = {
+MODEL_NAMES_TO_ID = {
     "Mistral-7B-Instruct": MISTRAL_7B_INSTRUCT,
     "Mistral-7B-Instruct-FT": FINETUNED_MISTRAL,
+    "Mistral-7B-Instruct-DPO": DPO_MISTRAL,
     "GPT-3.5-Turbo": "OpenAI",
 }
 
@@ -67,6 +76,7 @@ def create_path(path_):
 create_path(EXPERIMENT_LOGGER_AUTO)
 create_path(EXPERIMENT_LOGGER_STRUCTURED)
 create_path(EXPERIMENT_LOGGER_UNSTRUCTURED)
+create_path(EXPERIMENT_LOGGER_CHATBOT)
 create_path(DB_URL)
 create_path(CACHE_DIR)
 create_path(SOURCE_DOCUMENTS_PATH)
@@ -77,78 +87,83 @@ pages = [
     "Auto RAG",
     "Unstructured RAG",
     "Structured RAG",
+    "General Chatbot",
     "History",
 ]
 
 page = st.sidebar.radio("Choose Page", pages)
 
+st.image("home.png", width=100)
 st.header("FinAdvisor")
+st.write("*Welcome, ask away!*")
 
 if page == "Auto RAG":
+    torch.cuda.empty_cache()
     st.sidebar.divider()
     st.sidebar.write("Intent-based RAG over structured or unstructured Data.")
-
-    clear_history = st.sidebar.button("Clear History", use_container_width=True)
-    if clear_history:
-        if os.path.exists(CHAT_HISTORY_AUTO):
-            os.remove(CHAT_HISTORY_AUTO)
 
     auto_rag.render(
         history_file=CHAT_HISTORY_AUTO,
         models=MODELS,
-        model_names=MODEL_NAMES,
+        model_names_to_id=MODEL_NAMES_TO_ID,
         portfolios=PORTFOLIOS,
     )
 
 elif page == "Unstructured RAG":
+    torch.cuda.empty_cache()
     st.sidebar.divider()
     st.sidebar.write(
         "RAG over news articles for multiple Stock market tickers using Vector Stores."
     )
-    chat_history_file = f"data/chat_history/unstructured_rag.pkl"
 
-    but = st.sidebar.button("Clear History", use_container_width=True)
-    if but:
-        if os.path.exists(chat_history_file):
-            os.remove(chat_history_file)
-
-    refresh_db = st.sidebar.button("Refresh News", use_container_width=True)
-    st.sidebar.markdown("*Might take a while*")
-
-    if refresh_db:
-        service_context = unstructured_rag.get_service_context(
-            model_name=MISTRAL_7B_INSTRUCT, token=TOKEN, cache_dir=CACHE_DIR
-        )
-        unstructured_rag.load_docs_and_save_index(service_context=service_context)
-
-    unstructured_rag.render(history_file=chat_history_file)
+    unstructured_rag.render(
+        history_file=CHAT_HISTORY_UNSTRUCTURED,
+        models=MODELS,
+        model_names_to_id=MODEL_NAMES_TO_ID,
+    )
 
 elif page == "Structured RAG":
+    torch.cuda.empty_cache()
     st.sidebar.divider()
     st.sidebar.write(
         "RAG over historical stock prices for multiple Stock market tickers using Natural Language to SQL Approach."
     )
-    but = st.sidebar.button("Clear History", use_container_width=True)
-    if but:
-        if os.path.exists(CHAT_HISTORY_STRUCTURED):
-            os.remove(CHAT_HISTORY_STRUCTURED)
 
     structured_rag.render(
         history_file=CHAT_HISTORY_STRUCTURED,
         models=MODELS,
-        model_names=MODEL_NAMES,
+        model_names_to_id=MODEL_NAMES_TO_ID,
         portfolios=PORTFOLIOS,
+    )
+
+elif page == "General Chatbot":
+    torch.cuda.empty_cache()
+    st.sidebar.divider()
+    st.sidebar.write(
+        "General-purpose Chatbot with text-generation capabilities. No context is required."
+    )
+
+    chatbot.render(
+        history_file=CHAT_HISTORY_CHATBOT,
+        models=MODELS,
+        model_names_to_id=MODEL_NAMES_TO_ID,
     )
 
 
 elif page == "History":
+    torch.cuda.empty_cache()
     rag_type = st.sidebar.selectbox(
-        "RAG", ["Auto RAG", "Unstructured RAG", "Structured RAG"]
+        "Page", ["Auto RAG", "Unstructured RAG", "Structured RAG"]
     )
-    chat_history_file_dict = {"Auto RAG": ""}
+    experiment_loggers = {
+        "Auto RAG": EXPERIMENT_LOGGER_AUTO,
+        "Unstructured RAG": EXPERIMENT_LOGGER_UNSTRUCTURED,
+        "Structured RAG": EXPERIMENT_LOGGER_STRUCTURED,
+    }
 
     try:
-        df = pd.read_csv(EXPERIMENT_LOGGER_STRUCTURED)
+        st.markdown("#### " + rag_type)
+        df = pd.read_csv(experiment_loggers[rag_type])
 
         st.dataframe(df, use_container_width=True)
 
@@ -176,3 +191,6 @@ elif page == "History":
 
     except:
         st.write("No History Found")
+
+
+# st.write(st.session_state)

@@ -104,7 +104,7 @@ def get_service_context(model_name, token, cache_dir):
 
 def load_docs_and_save_index(model_name, service_context):
     reader = SimpleDirectoryReader(
-        input_dir=SOURCE_DOCUMENTS_PATH, required_exts=[".txt"], recursive=True
+        input_dir=SOURCE_DOCUMENTS_PATH, required_exts=[".txt", ".pdf"], recursive=True
     )
 
     docs = reader.load_data()

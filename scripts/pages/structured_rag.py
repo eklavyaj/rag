@@ -15,29 +15,17 @@ import sqlite3
 
 load_dotenv()
 
-BASE_DIR = os.getenv("BASE_DIR")
-DB_URL = os.getenv("DB_URL")
 
-CACHE_DIR = os.getenv("CACHE_DIR")
 TOKEN = os.getenv("HF_TOKEN")
+CACHE_DIR = os.getenv("CACHE_DIR")
 
-MISTRAL_7B_INSTRUCT = os.getenv("MISTRAL_7B_INSTRUCT")
-FINETUNED_MISTRAL = os.getenv("FINETUNED_MISTRAL")
-
+DB_URL = os.getenv("DB_URL")
 EXCEL_FILE_PATH = os.getenv("EXCEL_FILE_PATH")
 SOURCE_DOCUMENTS_PATH = os.getenv("SOURCE_DOCUMENTS_PATH")
 ASSET_MAPPING_PATH = os.getenv("ASSET_MAPPING_PATH")
 
 EXPERIMENT_LOGGER_STRUCTURED = os.getenv("EXPERIMENT_LOGGER_STRUCTURED")
-EXPERIMENT_LOGGER_UNSTRUCTURED = os.getenv("EXPERIMENT_LOGGER_UNSTRUCTURED")
-EXPERIMENT_LOGGER_AUTO = os.getenv("EXPERIMENT_LOGGER_AUTO")
-
-CHAT_HISTORY_AUTO = os.getenv("CHAT_HISTORY_AUTO")
 CHAT_HISTORY_STRUCTURED = os.getenv("CHAT_HISTORY_STRUCTURED")
-CHAT_HISTORY_UNSTRUCTURED = os.getenv("CHAT_HISTORY_UNSTRUCTURED")
-
-VECTOR_DB_INDEX = os.getenv("VECTOR_DB_INDEX")
-GRAPH_DB_INDEX = os.getenv("GRAPH_DB_INDEX")
 
 
 def answer_query(query_engine, query):
@@ -54,7 +42,8 @@ def clean_response(response):
     return response
 
 
-def render(history_file, models, model_names, portfolios):
+def render(history_file, models, model_names_to_id, portfolios):
+    st.sidebar.divider()
     model = st.sidebar.selectbox("Choose Model", models)
     portfolio = st.sidebar.selectbox("Choose Portfolio", portfolios)
 
@@ -75,12 +64,18 @@ def render(history_file, models, model_names, portfolios):
         )
 
         service_context = get_service_context(
-            model_names[model], token=TOKEN, cache_dir=CACHE_DIR
+            model_names_to_id[model], token=TOKEN, cache_dir=CACHE_DIR
         )
 
         query_engine = get_query_engine(
             sql_database=sql_database, service_context=service_context
         )
+
+    st.sidebar.divider()
+    but = st.sidebar.button("Clear History", use_container_width=True)
+    if but:
+        if os.path.exists(CHAT_HISTORY_STRUCTURED):
+            os.remove(CHAT_HISTORY_STRUCTURED)
 
     try:
         st.session_state.messages = pkl.load(open(history_file, "rb"))
@@ -95,6 +90,7 @@ def render(history_file, models, model_names, portfolios):
         else:
             with st.chat_message(message["role"]):
                 st.markdown(message["content"])
+
                 with st.expander("SQL", expanded=False):
                     st.code(message["sql"], language="sql")
                     if type(message["df_sql"]) == str:
@@ -125,6 +121,7 @@ def render(history_file, models, model_names, portfolios):
 
         with st.chat_message("assistant"):
             st.markdown(clean_response(resp))
+
             with st.expander("SQL", expanded=True):
                 st.code(sql, language="sql")
                 if type(df_sql) == str:
@@ -140,25 +137,24 @@ def render(history_file, models, model_names, portfolios):
         st.session_state.messages.append(
             {
                 "role": "assistant",
+                "model": model,
+                "portfolio": portfolio,
                 "content": resp,
                 "sql": sql,
                 "time": time,
                 "df_sql": df_sql,
-                "model": model,
-                "portfolio": portfolio,
             }
         )
 
-        # log each query
         df = pd.DataFrame(
             {
                 "timestamp": [datetime.datetime.now()],
-                "user_input": [input_query],
-                "llm_response": [resp],
-                "time_taken": [time],
-                "sql_query": [sql],
                 "model": [model],
                 "portfolio": [portfolio],
+                "user_input": [input_query],
+                "llm_response": [resp],
+                "sql_query": [sql],
+                "time_taken": [time],
             }
         )
 
