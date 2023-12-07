@@ -87,8 +87,6 @@ def answer_query(model_name, llm, query):
         query = "[INST] " + query + " [/INST]"
         resp = llm.complete(query).text
 
-    print(query)
-    print(resp)
     return time.time() - start, resp
 
 
