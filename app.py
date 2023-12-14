@@ -27,6 +27,7 @@ TOKEN = os.getenv("HF_TOKEN")
 MISTRAL_7B_INSTRUCT = os.getenv("MISTRAL_7B_INSTRUCT")
 FINETUNED_MISTRAL = os.getenv("FINETUNED_MISTRAL")
 DPO_MISTRAL = os.getenv("DPO_MISTRAL")
+LLAMA2_7B_CHAT_HF = os.getenv("LLAMA2_7B_CHAT_HF")
 
 EXCEL_FILE_PATH = os.getenv("EXCEL_FILE_PATH")
 SOURCE_DOCUMENTS_PATH = os.getenv("SOURCE_DOCUMENTS_PATH")
@@ -56,14 +57,18 @@ MODELS = [
     "Mistral-7B-Instruct",
     "Mistral-7B-Instruct-FT",
     "Mistral-7B-Instruct-DPO",
+    "Llama2-7B-Chat-HF",
     "GPT-3.5-Turbo",
+    "Enter HuggingFace ID",
 ]
 
 MODEL_NAMES_TO_ID = {
     "Mistral-7B-Instruct": MISTRAL_7B_INSTRUCT,
     "Mistral-7B-Instruct-FT": FINETUNED_MISTRAL,
     "Mistral-7B-Instruct-DPO": DPO_MISTRAL,
+    "Llama2-7B-Chat-HF": LLAMA2_7B_CHAT_HF,
     "GPT-3.5-Turbo": "OpenAI",
+    "Enter HuggingFace ID": "",
 }
 
 
@@ -85,9 +90,9 @@ create_path(GRAPH_DB_INDEX)
 
 pages = [
     "Auto RAG",
+    "General Chatbot",
     "Unstructured RAG",
     "Structured RAG",
-    "General Chatbot",
     "History",
 ]
 
@@ -108,6 +113,20 @@ if page == "Auto RAG":
         model_names_to_id=MODEL_NAMES_TO_ID,
         portfolios=PORTFOLIOS,
     )
+
+elif page == "General Chatbot":
+    torch.cuda.empty_cache()
+    st.sidebar.divider()
+    st.sidebar.write(
+        "General-purpose Chatbot with text-generation capabilities. No context is required."
+    )
+
+    chatbot.render(
+        history_file=CHAT_HISTORY_CHATBOT,
+        models=MODELS,
+        model_names_to_id=MODEL_NAMES_TO_ID,
+    )
+
 
 elif page == "Unstructured RAG":
     torch.cuda.empty_cache()
@@ -134,19 +153,6 @@ elif page == "Structured RAG":
         models=MODELS,
         model_names_to_id=MODEL_NAMES_TO_ID,
         portfolios=PORTFOLIOS,
-    )
-
-elif page == "General Chatbot":
-    torch.cuda.empty_cache()
-    st.sidebar.divider()
-    st.sidebar.write(
-        "General-purpose Chatbot with text-generation capabilities. No context is required."
-    )
-
-    chatbot.render(
-        history_file=CHAT_HISTORY_CHATBOT,
-        models=MODELS,
-        model_names_to_id=MODEL_NAMES_TO_ID,
     )
 
 

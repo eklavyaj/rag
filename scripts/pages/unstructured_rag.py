@@ -48,6 +48,23 @@ def render(history_file, models, model_names_to_id):
     st.sidebar.divider()
     model = st.sidebar.selectbox("Model", models)
 
+    if model_names_to_id[model].lower() == 'openai':
+        openai_key = st.sidebar.text_input("OpenAI API Key")
+        if openai_key:
+            os.environ["OPENAI_API_KEY"] = openai_key
+        else:
+            st.info("Please Enter OpenAI's API Key to continue.")
+            st.stop()
+            
+    elif model == "Enter HuggingFace ID":
+        model_id = st.sidebar.text_input("Enter HuggingFace Model ID")
+        if model_id:
+            model_names_to_id[model_id] = model_id
+            model = model_id
+        else:
+            st.info("Please Enter HuggingFace Model ID to continue.")
+            st.stop()
+            
     with st.spinner("Initializing App"):
         service_context = get_service_context(
             model_name=model_names_to_id[model], token=TOKEN, cache_dir=CACHE_DIR
