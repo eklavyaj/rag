@@ -13,3 +13,6 @@ yfinance
 langchain
 python-dotenv
 sentence_transformers
+google-cloud-storage
+plotly
+accelerate
