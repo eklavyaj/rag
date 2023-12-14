@@ -18,7 +18,6 @@ load_dotenv()
 st.set_page_config(layout="wide", page_title="FinAdvisor", page_icon="home.png")
 
 
-BASE_DIR = os.getenv("BASE_DIR")
 DB_URL = os.getenv("DB_URL")
 
 CACHE_DIR = os.getenv("CACHE_DIR")
