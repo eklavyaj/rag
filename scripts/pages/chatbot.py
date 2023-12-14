@@ -54,6 +54,7 @@ def get_llm(model_name, token, cache_dir, temperature=0.5, max_new_tokens=500):
     model_config = transformers.AutoConfig.from_pretrained(
         model_name,
         use_auth_token=token,
+        trust_remote_code=True,
         cache_dir=cache_dir,
         pad_token_id=tokenizer.eos_token_id,
     )
@@ -106,7 +107,7 @@ def render(history_file, models, model_names_to_id):
         else:
             st.info("Please Enter OpenAI's API Key to continue.")
             st.stop()
-            
+
     elif model == "Enter HuggingFace ID":
         model_id = st.sidebar.text_input("Enter HuggingFace Model ID")
         if model_id:

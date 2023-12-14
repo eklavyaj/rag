@@ -47,6 +47,7 @@ def get_llm(model_name, token, cache_dir):
     model_config = transformers.AutoConfig.from_pretrained(
         model_name,
         use_auth_token=token,
+        trust_remote_code=True,
         cache_dir=cache_dir,
         pad_token_id=tokenizer.eos_token_id,
     )
@@ -57,7 +58,7 @@ def get_llm(model_name, token, cache_dir):
         generate_kwargs={"temperature": 0.00, "do_sample": False, "top_k": 100},
         tokenizer=tokenizer,
         model_name=model_name,
-        device_map="auto",
+        device_map="cuda:0",
         model_kwargs={
             "trust_remote_code": True,
             "config": model_config,

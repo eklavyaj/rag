@@ -71,6 +71,26 @@ MODEL_NAMES_TO_ID = {
 }
 
 
+import gc
+
+
+def clear_memory():
+    for obj in gc.get_objects():
+        try:
+            if torch.is_tensor(obj) or (
+                hasattr(obj, "data") and torch.is_tensor(obj.data)
+            ):
+                # print(type(obj))
+                del obj
+            pass
+
+        except:
+            pass
+
+    gc.collect()
+    torch.cuda.empty_cache()
+
+
 def create_path(path_):
     if not os.path.exists(path_.rsplit("/", 1)[0]):
         os.makedirs(path_.rsplit("/", 1)[0])
@@ -106,12 +126,18 @@ if page == "Auto RAG":
     st.sidebar.divider()
     st.sidebar.write("Intent-based RAG over structured or unstructured Data.")
 
-    auto_rag.render(
-        history_file=CHAT_HISTORY_AUTO,
-        models=MODELS,
-        model_names_to_id=MODEL_NAMES_TO_ID,
-        portfolios=PORTFOLIOS,
-    )
+    try:
+        auto_rag.render(
+            history_file=CHAT_HISTORY_AUTO,
+            models=MODELS,
+            model_names_to_id=MODEL_NAMES_TO_ID,
+            portfolios=PORTFOLIOS,
+        )
+
+    except:
+        clear_memory()
+        st.error("CUDA Out of Memory: Please restart the app")
+
 
 elif page == "General Chatbot":
     torch.cuda.empty_cache()
@@ -120,12 +146,16 @@ elif page == "General Chatbot":
         "General-purpose Chatbot with text-generation capabilities. No context is required."
     )
 
-    chatbot.render(
-        history_file=CHAT_HISTORY_CHATBOT,
-        models=MODELS,
-        model_names_to_id=MODEL_NAMES_TO_ID,
-    )
+    try:
+        chatbot.render(
+            history_file=CHAT_HISTORY_CHATBOT,
+            models=MODELS,
+            model_names_to_id=MODEL_NAMES_TO_ID,
+        )
 
+    except:
+        clear_memory()
+        st.error("CUDA Out of Memory: Please restart the app")
 
 elif page == "Unstructured RAG":
     torch.cuda.empty_cache()
@@ -134,11 +164,15 @@ elif page == "Unstructured RAG":
         "RAG over news articles for multiple Stock market tickers using Vector Stores."
     )
 
-    unstructured_rag.render(
-        history_file=CHAT_HISTORY_UNSTRUCTURED,
-        models=MODELS,
-        model_names_to_id=MODEL_NAMES_TO_ID,
-    )
+    try:
+        unstructured_rag.render(
+            history_file=CHAT_HISTORY_UNSTRUCTURED,
+            models=MODELS,
+            model_names_to_id=MODEL_NAMES_TO_ID,
+        )
+    except:
+        clear_memory()
+        st.error("CUDA Out of Memory: Please restart the app")
 
 elif page == "Structured RAG":
     torch.cuda.empty_cache()
@@ -147,13 +181,16 @@ elif page == "Structured RAG":
         "RAG over historical stock prices for multiple Stock market tickers using Natural Language to SQL Approach."
     )
 
-    structured_rag.render(
-        history_file=CHAT_HISTORY_STRUCTURED,
-        models=MODELS,
-        model_names_to_id=MODEL_NAMES_TO_ID,
-        portfolios=PORTFOLIOS,
-    )
-
+    try:
+        structured_rag.render(
+            history_file=CHAT_HISTORY_STRUCTURED,
+            models=MODELS,
+            model_names_to_id=MODEL_NAMES_TO_ID,
+            portfolios=PORTFOLIOS,
+        )
+    except:
+        clear_memory()
+        st.error("CUDA Out of Memory: Please restart the app")
 
 elif page == "History":
     torch.cuda.empty_cache()
@@ -169,8 +206,6 @@ elif page == "History":
     try:
         st.markdown("#### " + rag_type)
         df = pd.read_csv(experiment_loggers[rag_type])
-
-        st.dataframe(df, use_container_width=True)
 
         df["response_length"] = df["llm_response"].apply(lambda x: len(x))
 
@@ -194,6 +229,7 @@ elif page == "History":
         fig.update_layout(title="Time Taken with Response Length")
         st.plotly_chart(fig, use_container_width=True)
 
+        st.dataframe(df, use_container_width=True)
     except:
         st.write("No History Found")
 
